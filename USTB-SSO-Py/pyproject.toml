@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "USTB-SSO"
+version = "1.0.0"
+description = "USTB Single Sign-On Authentication Library"
+authors = ["Harry Huang <harryhuang2652@qq.com>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.8,<4"
+httpx = "~0.28"
+
+[[tool.poetry.source]]
+name = "PyPI-Tsinghua"
+url = "https://pypi.tuna.tsinghua.edu.cn/simple"
+priority = "primary"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
