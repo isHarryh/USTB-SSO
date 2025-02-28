@@ -1,0 +1,9 @@
+{
+    "python.analysis.typeCheckingMode": "basic",
+    "cSpell.language": "en,en-US,en-GB",
+    "cSpell.words": [
+        "httpx",
+        "jwgl",
+        "ustb"
+    ]
+}
