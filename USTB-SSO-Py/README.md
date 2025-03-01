@@ -96,6 +96,34 @@ auth = HttpxAuthSession(
 
 `auth.client` 是一个 `httpx.Client` 实例（类似于 `request.Session`），用于存储 Cookie 等客户端数据。后续如果需要使用 Cookie 令牌去做其他的 API 请求，可以直接调用 `auth.client` 的相关方法。
 
+## 开发指南 <sub>Dev Guide</sub>
+
+如果您想对 USTB-SSO (Py) 进行开发，以下指引可能有所帮助。
+
+### 开始开发
+
+1. 安装 Python；
+2. 安装依赖管理工具 [Poetry](https://python-poetry.org/docs/1.8) 1.8；
+3. 克隆仓库到本地；
+4. 使用 Poetry 创建虚拟环境，并安装所有依赖项：
+   ```bash
+   poetry env use python
+   poetry install -E httpx
+   ```
+
+### 测试
+
+1. 激活虚拟环境：
+   - 在 VS Code 中选择虚拟环境中的 Python 解释器（推荐）；
+   - 或者，使用 `poetry shell` 命令进入虚拟环境。
+2. 运行测试代码：
+   - 在 VS Code 中运行任务 `Python: Test USTB-SSO`（推荐）；
+   - 或者，使用 `python <文件名>` 命令来手动运行代码。
+3. 构建可发行文件：
+   ```bash
+   poetry build
+   ```
+
 ## 许可证 <sub>Licensing</sub>
 
 本项目基于 **MIT 开源许可证**，详情参见 [License](https://github.com/isHarryh/USTB-SSO/blob/main/LICENSE) 页面。
