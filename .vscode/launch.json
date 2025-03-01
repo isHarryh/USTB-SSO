@@ -1,0 +1,13 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Test USTB-SSO+httpx",
+            "type": "debugpy",
+            "request": "launch",
+            "cwd": "${workspaceFolder}/USTB-SSO-Py",
+            "program": "tests/test_httpx.py",
+            "console": "integratedTerminal"
+        }
+    ]
+}
