@@ -5,10 +5,18 @@ description = "USTB Single Sign-On Authentication Library"
 authors = ["Harry Huang <harryhuang2652@qq.com>"]
 license = "MIT"
 readme = "README.md"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
 
 [tool.poetry.dependencies]
 python = ">=3.8,<4"
-httpx = "~0.28"
+httpx = { version = "~0.28", optional = true }
+
+[tool.poetry.extras]
+httpx = ["httpx"]
 
 [[tool.poetry.source]]
 name = "PyPI-Tsinghua"
