@@ -1,0 +1,101 @@
+USTB-SSO (Py)
+==========
+USTB Single Sign-On Authentication Library (Python)  
+北京科技大学单点登录（SSO）身份认证实现库（Python）
+
+> This module is the Python implementation of [USTB-SSO](https://github.com/isHarryh/USTB-SSO).  
+> 此模块是 [USTB-SSO](https://github.com/isHarryh/USTB-SSO) 项目的 Python 实现。
+
+<sup> This project only supports Chinese docs. If you are an English user, feel free to contact us. </sup>
+
+## 介绍 <sub>Intro</sub>
+
+**特点：** 简单易用；自文档化；依赖最少原则；良好的类型注解；全面的错误反馈。
+
+### 实现的功能
+
+- **发起认证：**  
+  支持向[北科大 SSO 服务器](https://sso.ustb.edu.cn)发起针对指定应用的身份认证请求；
+- **进行认证：**  
+  支持使用微信二维码来完成身份认证；
+- **完成认证：**  
+  支持在认证成功后，获取已被认证的客户端实例或 Cookie 实例。
+
+## 使用方法 <sub>Usage</sub>
+
+### 安装
+
+要求 [Python](https://www.python.org) >= 3.8，且安装有 [httpx](https://www.python-httpx.org/) 库（一个类似于 requests 的库）。使用 `pip` 安装：
+
+```bash
+pip install httpx ustb_sso
+```
+
+### 前置知识
+
+要想实现通过 SSO 来北科大的某个指定的应用，需要先准备 3 个参数：
+
+1. 该应用的实体编号（`entity_id`）；
+2. 该应用的认证终点 URL（`redirect_uri`）；
+3. 该应用的内部状态名（`state`）。
+
+我们已经在 `ustb_sso.prefabs` 中以常量的形式存储了部分已知应用的参数。如果您需要接入其他应用，请自行在网页中抓取 `https://sso.ustb.edu.cn/idp/authCenter/authenticate` 这个请求的请求参数来获得。
+
+### 示例代码
+
+以下代码演示了如何获取[北科大 AI 助手](http://chat.ustb.edu.cn)（2025 年版）的令牌 Cookie。
+
+```py
+from ustb_sso import HttpxAuthSession, prefabs
+
+auth = HttpxAuthSession(**prefabs.CHAT_USTB_EDU_CN)  # ※
+
+print("Starting authentication...")
+auth.open_auth().use_wechat_auth().use_qr_code()
+
+with open(f"qr.png", "wb") as f:
+    f.write(auth.get_qr_image())  # ▲
+
+print("Waiting for confirmation... Please scan the QR code")
+pass_code = auth.wait_for_pass_code()
+
+print("Validating...")
+rsp = auth.complete_auth(pass_code)
+
+print("Response status:", rsp.status_code)
+
+cookie_name = "cookie_vjuid_login"
+print("Cookie:", cookie_name, "=", auth.client.cookies[cookie_name])
+```
+
+当代码运行到 `▲` 位置时，您需要使用微信来扫描文件夹中生成的 `qr.png` 图片中的二维码，并在微信上确认登录。
+
+#### 输出样例
+
+```txt
+Starting authentication...
+Waiting for confirmation... Please scan the QR code
+Validating...
+Response status: 200
+Cookie: cookie_vjuid_login = xxxxxxxx...
+```
+
+#### 补充解释
+
+代码的 `※` 位置使用了字典解包（`**`）操作符。它等价于：
+
+```python
+auth = HttpxAuthSession(
+    entity_id=prefabs.CHAT_USTB_EDU_CN["entity_id"],
+    redirect_uri=prefabs.CHAT_USTB_EDU_CN["redirect_uri"],
+    state=prefabs.CHAT_USTB_EDU_CN["state"]
+)
+```
+
+这里的 `prefabs.CHAT_USTB_EDU_CN` 就是我们预设的应用参数。
+
+`auth.client` 是一个 `httpx.Client` 实例（类似于 `request.Session`），用于存储 Cookie 等客户端数据。后续如果需要使用 Cookie 令牌去做其他的 API 请求，可以直接调用 `auth.client` 的相关方法。
+
+## 许可证 <sub>Licensing</sub>
+
+本项目基于 **MIT 开源许可证**，详情参见 [License](https://github.com/isHarryh/USTB-SSO/blob/main/LICENSE) 页面。
