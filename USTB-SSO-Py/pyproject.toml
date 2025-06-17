@@ -1,22 +1,22 @@
-[tool.poetry]
+[project]
 name = "USTB-SSO"
 version = "1.0.0"
 description = "USTB Single Sign-On Authentication Library"
-authors = ["Harry Huang <harryhuang2652@qq.com>"]
+authors = [
+    {name = "Harry Huang", email = "harryhuang2652@qq.com"}
+]
 license = "MIT"
 readme = "README.md"
+requires-python = ">=3.8,<4"
+dependencies = []
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
+    "Operating System :: OS Independent"
 ]
 
-[tool.poetry.dependencies]
-python = ">=3.8,<4"
-httpx = { version = "~0.28", optional = true }
-
-[tool.poetry.extras]
-httpx = ["httpx"]
+[project.optional-dependencies]
+httpx = ["httpx ~=0.28"]
 
 [[tool.poetry.source]]
 name = "PyPI-Tsinghua"
