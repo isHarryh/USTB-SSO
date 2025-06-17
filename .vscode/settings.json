@@ -1,9 +1,11 @@
 {
+    "black-formatter.args": ["-l", "120"],
     "python.analysis.typeCheckingMode": "basic",
     "cSpell.language": "en,en-US,en-GB",
     "cSpell.words": [
         "httpx",
         "jwgl",
         "ustb"
-    ]
+    ],
+    "editor.formatOnSave": true
 }
