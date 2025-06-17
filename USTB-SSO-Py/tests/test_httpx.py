@@ -1,9 +1,11 @@
 import os
 
-from ustb_sso import HttpxAuthSession, prefabs
+from ustb_sso import HttpxSession, QrAuthProcedure, prefabs
+
 
 def test_jwgl():
-    auth = HttpxAuthSession(**prefabs.JWGL_USTB_EDU_CN)
+    session = HttpxSession()
+    auth = QrAuthProcedure(session=session, **prefabs.JWGL_USTB_EDU_CN)
 
     print("JWGL: Starting authentication")
     auth.open_auth().use_wechat_auth().use_qr_code()
@@ -20,8 +22,10 @@ def test_jwgl():
     assert "//jwgl.ustb.edu.cn/framework" in str(rsp.url), "No homepage returned"
     print("JWGL: Finished test\n")
 
+
 def test_chat():
-    auth = HttpxAuthSession(**prefabs.CHAT_USTB_EDU_CN)
+    session = HttpxSession()
+    auth = QrAuthProcedure(session=session, **prefabs.CHAT_USTB_EDU_CN)
 
     print("CHAT: Starting authentication")
     auth.open_auth().use_wechat_auth().use_qr_code()
@@ -35,7 +39,7 @@ def test_chat():
     print("CHAT: Validating")
     rsp = auth.complete_auth(pass_code)
 
-    assert "cookie_vjuid_login" in auth.client.cookies, "No authentication cookie returned"
+    assert "cookie_vjuid_login" in session.client.cookies, "No authentication cookie returned"
     print("CHAT: Finished test\n")
 
 

@@ -1,15 +1,17 @@
 from . import _exceptions as exceptions
 from . import _prefabs as prefabs
 
+# Core new architecture classes
+from ._sessions import SessionBase
+from ._procedure import AuthProcedureBase, QrAuthProcedure
+
+# Concrete implementations
 try:
-    from ._auth_session import HttpxAuthSession
+    from ._sessions import HttpxSession
+
+    _has_httpx = True
 except ImportError:
-    pass
+    _has_httpx = False
 
-_all_impl = ('HttpxAuthSession',)
-
-if all(i not in globals() for i in _all_impl):
-    raise ImportError(
-        f"None of these implementations is available: {_all_impl}"
-        + " , you may install httpx lib."
-    )
+if not _has_httpx:
+    raise ImportError("HttpX implementation not available. Please install httpx: pip install httpx")
