@@ -46,9 +46,11 @@ pip install httpx ustb_sso
 以下代码演示了如何获取[北科大 AI 助手](http://chat.ustb.edu.cn)（2025 年版）的令牌 Cookie。
 
 ```py
-from ustb_sso import HttpxAuthSession, prefabs
+import os
+from ustb_sso import HttpxSession, QrAuthProcedure, prefabs
 
-auth = HttpxAuthSession(**prefabs.CHAT_USTB_EDU_CN)  # ※
+session = HttpxSession()
+auth = QrAuthProcedure(session=session, **prefabs.CHAT_USTB_EDU_CN)  # ※
 
 print("Starting authentication...")
 auth.open_auth().use_wechat_auth().use_qr_code()
@@ -63,9 +65,8 @@ print("Validating...")
 rsp = auth.complete_auth(pass_code)
 
 print("Response status:", rsp.status_code)
-
 cookie_name = "cookie_vjuid_login"
-print("Cookie:", cookie_name, "=", auth.client.cookies[cookie_name])
+print("Cookie:", cookie_name, "=", session.client.cookies[cookie_name])
 ```
 
 当代码运行到 `▲` 位置时，您需要使用微信来扫描文件夹中生成的 `qr.png` 图片中的二维码，并在微信上确认登录。
@@ -94,7 +95,7 @@ auth = HttpxAuthSession(
 
 这里的 `prefabs.CHAT_USTB_EDU_CN` 就是我们预设的应用参数。
 
-`auth.client` 是一个 `httpx.Client` 实例（类似于 `request.Session`），用于存储 Cookie 等客户端数据。后续如果需要使用 Cookie 令牌去做其他的 API 请求，可以直接调用 `auth.client` 的相关方法。
+`session.client` 是一个 `httpx.Client` 实例（类似于 `request.Session`），用于存储 Cookie 等客户端数据。后续如果需要使用 Cookie 令牌去做其他的 API 请求，可以直接调用 `session.client` 的相关方法。
 
 ## 开发指南 <sub>Dev Guide</sub>
 
