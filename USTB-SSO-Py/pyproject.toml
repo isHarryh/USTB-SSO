@@ -1,6 +1,6 @@
 [project]
 name = "USTB-SSO"
-version = "1.0.0"
+version = "1.1.0"
 description = "USTB Single Sign-On Authentication Library"
 authors = [
     {name = "Harry Huang", email = "harryhuang2652@qq.com"}
