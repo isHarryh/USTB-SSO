@@ -92,6 +92,88 @@ USTB SSO 附加文档
 - 响应：重定向 `302 Found`。具体目标依应用而异，参见[各应用的认证终点](#各应用的认证终点)。
 - 注意：请求参数中，`thirdPartyAuthCode` 和 `lck` 通常已经给出，只需手动添加剩余的参数。
 
+## 认证方式查询
+
+在启动任何具体的认证流程之前，系统需要查询当前实体支持的认证方式。
+
+### 查询认证方式
+
+#### POST `https://sso.ustb.edu.cn/idp/authn/queryAuthMethods`
+
+- 功能：查询指定实体支持的认证方式列表。
+- 请求参数：
+  - `lck` 本次认证的 ID。
+  - `entityId` 实体标识符。
+- 响应：JSON。根字段包括 `code` `data` `message` 等，其中 `code == 200` 表示成功。
+- 响应结构：`data` 字段是一个数组，每个元素包含以下重要信息：
+  - `authChainCode` 认证链代码。
+  - `chainName` 认证方式的中文名称，例如"短信认证-定制"、"微认证扫码-需要同时配置微认证sso"。
+  - `moduleCode` 模块代码，例如 `userAndSms`（短信认证）、`microQr`（微信二维码认证）。
+  - `moduleName` 模块名称，例如"验证码登录"、"微信登录"。
+  - `moduleNameEn` 模块英文名称。
+  - `moduleCodes` 模块代码列表，通常包含单个 `moduleCode`。
+- 注意：此接口必须在获取 `lck` 后调用，通常在[认证入口](#认证入口)步骤之后立即执行。
+
+## 短信认证流程
+
+短信认证是除微信扫码外的另一种主要认证方式。该流程需要用户提供手机号码，系统发送验证码到用户手机，用户输入验证码完成认证。
+
+### 检查短信认证可用性
+
+#### GET `https://sso.ustb.edu.cn/idp/captcha/checkOpen`
+
+- 功能：检查指定类型的验证码是否可用。
+- 请求参数：
+  - `type` 验证码类型，短信认证时使用 `sms`。
+- 响应：状态码 `200` 表示该类型验证码可用。
+
+### 获取图形验证码
+
+#### GET `https://sso.ustb.edu.cn/idp/captcha/getBlockPuzzle`
+
+- 功能：获取滑动拼图验证码，用于短信发送前的人机验证。
+- 请求参数：无。
+- 响应：JSON。根字段包括 `code` `data` `message` 等。
+- 响应结构：`data` 字段包含以下重要信息：
+  - `originalImageBase64` 原始背景图片的 Base64 编码。
+  - `jigsawImageBase64` 拼图块图片的 Base64 编码。
+  - `token` 验证码会话标识符，UUID 格式。
+- 注意：客户端需要计算拼图块在背景图片中的正确位置坐标 `(x, y)`，可使用图像识别算法或第三方库（如 `no_puzzle_captcha`）自动求解。
+
+### 发送短信验证码
+
+#### POST `https://sso.ustb.edu.cn/idp/authn/sendSmsMsg`
+
+- 功能：向指定手机号发送短信验证码。
+- 请求参数：
+  - `loginName` 手机号码字符串。
+  - `pointJson` 拼图验证的答案，JSON 字符串格式，包含 `x` 和 `y` 坐标，例如 `"{\"x\":123,\"y\":5}"`。
+  - `token` 从[图形验证码](#获取图形验证码)获取的会话标识符。
+  - `lck` 本次认证的 ID。
+- 响应：JSON。根字段包括 `code` `data` `message` 等。
+- 响应结构：成功时 `data.data.code == "200"`。常见错误码：
+  - `201` 发送间隔过短，需要等待。
+  - `5054` 图形验证不通过，拼图坐标错误。
+- 注意：请求体使用 JSON 格式传参。发送成功后，用户手机将收到包含验证码的短信。
+
+### 短信验证码认证
+
+#### POST `https://sso.ustb.edu.cn/idp/authn/authExecute`
+
+- 功能：使用短信验证码完成身份认证。
+- 请求参数：
+  - `authModuleCode` 认证模块代码，短信认证时固定为 `userAndSms`。
+  - `authChainCode` 认证链代码，通常为空字符串。
+  - `entityId` 实体标识符。
+  - `requestType` 请求类型，固定为 `chain_type`。
+  - `lck` 本次认证的 ID。
+  - `authPara` 认证参数对象，包含：
+    - `loginName` 手机号码。
+    - `smsCode` 用户输入的短信验证码。
+    - `verifyCode` 图形验证码，短信认证时通常为空字符串。
+- 响应：JSON。包含认证结果和相关信息。
+- 注意：请求体使用 JSON 格式传参。认证成功后，响应将包含进一步跳转所需的信息。
+
 ## 各应用的认证终点
 
 认证终点，即客户端应用的登录接口，其作用是为客户端应用赋予用户令牌（通常以 Cookie 的形式）。

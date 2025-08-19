@@ -17,7 +17,7 @@ USTB Single Sign-On Authentication Library (Python)
 - **发起认证：**  
   支持向[北科大 SSO 服务器](https://sso.ustb.edu.cn)发起针对指定应用的身份认证请求；
 - **进行认证：**  
-  支持使用微信二维码来完成身份认证；
+  支持使用微信二维码或短信验证码来完成身份认证；
 - **完成认证：**  
   支持在认证成功后，获取已被认证的客户端实例或 Cookie 实例。
 
@@ -41,9 +41,9 @@ pip install httpx ustb_sso
 
 我们已经在 `ustb_sso.prefabs` 中以常量的形式存储了部分已知应用的参数。如果您需要接入其他应用，请自行在网页中抓取 `https://sso.ustb.edu.cn/idp/authCenter/authenticate` 这个请求的请求参数来获得。
 
-### 示例代码
+### 示例：微信扫码登录
 
-以下代码演示了如何获取[北科大 AI 助手](http://chat.ustb.edu.cn)（2025 年版）的令牌 Cookie。
+以下代码演示了如何通过通过微信扫码登录来获取[北科大 AI 助手](http://chat.ustb.edu.cn)（2025 年版）的令牌 Cookie。
 
 ```py
 import os
@@ -53,7 +53,8 @@ session = HttpxSession()
 auth = QrAuthProcedure(session=session, **prefabs.CHAT_USTB_EDU_CN)  # ※
 
 print("Starting authentication...")
-auth.open_auth().use_wechat_auth().use_qr_code()
+auth.open_auth()
+auth.use_wechat_auth().use_qr_code()
 
 with open(f"qr.png", "wb") as f:
     f.write(auth.get_qr_image())  # ▲
@@ -71,18 +72,6 @@ print("Cookie:", cookie_name, "=", session.client.cookies[cookie_name])
 
 当代码运行到 `▲` 位置时，您需要使用微信来扫描文件夹中生成的 `qr.png` 图片中的二维码，并在微信上确认登录。
 
-#### 输出样例
-
-```txt
-Starting authentication...
-Waiting for confirmation... Please scan the QR code
-Validating...
-Response status: 200
-Cookie: cookie_vjuid_login = xxxxxxxx...
-```
-
-#### 补充解释
-
 代码的 `※` 位置使用了字典解包（`**`）操作符。它等价于：
 
 ```python
@@ -93,9 +82,37 @@ auth = HttpxAuthSession(
 )
 ```
 
-这里的 `prefabs.CHAT_USTB_EDU_CN` 就是我们预设的应用参数。
+这里的 `prefabs.CHAT_USTB_EDU_CN` 就是我们的库所提供的预设应用参数，以便开发者快捷调用。有关其他的预设应用参数，请参见[此文件](ustb_sso/_prefabs.py)。
 
 `session.client` 是一个 `httpx.Client` 实例（类似于 `request.Session`），用于存储 Cookie 等客户端数据。后续如果需要使用 Cookie 令牌去做其他的 API 请求，可以直接调用 `session.client` 的相关方法。
+
+### 示例：短信验证码登录
+
+如果没有微信扫码的条件，则可以使用短信验证码进行登录。以下是使用短信验证码进行登录的示例。
+
+```py
+from ustb_sso import HttpxSession, SmsAuthProcedure, prefabs
+
+session = HttpxSession()
+auth = SmsAuthProcedure(session=session, **prefabs.CHAT_USTB_EDU_CN)
+
+print("Starting authentication...")
+auth.open_auth()
+auth.check_sms_available()
+
+phone_number = input("Please enter your phone number: ")
+auth.send_sms(phone_number)
+
+sms_code = input("Please enter the SMS code: ")
+token = auth.submit_sms_code(phone_number, sms_code)
+
+print("Validating...")
+rsp = auth.complete_sms_auth(token)
+
+print("Response status:", rsp.status_code)
+cookie_name = "cookie_vjuid_login"
+print("Cookie:", cookie_name, "=", session.client.cookies[cookie_name])
+```
 
 ## 开发指南 <sub>Dev Guide</sub>
 
@@ -104,7 +121,7 @@ auth = HttpxAuthSession(
 ### 开始开发
 
 1. 安装 Python；
-2. 安装依赖管理工具 [Poetry](https://python-poetry.org/docs/1.8) 1.8；
+2. 安装依赖管理工具 [Poetry](https://python-poetry.org/docs) 2.1；
 3. 克隆仓库到本地；
 4. 使用 Poetry 创建虚拟环境，并安装所有依赖项：
    ```bash
