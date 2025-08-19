@@ -1,9 +1,10 @@
 from . import _exceptions as exceptions
 from . import _prefabs as prefabs
+from . import _data as data
 
 # Core new architecture classes
 from ._sessions import SessionBase
-from ._procedure import AuthProcedureBase, QrAuthProcedure
+from ._procedure import AuthProcedureBase, QrAuthProcedure, SmsAuthProcedure
 
 # Concrete implementations
 try:
