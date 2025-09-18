@@ -30,17 +30,11 @@ class CookieJar {
   void setCookiesFromResponse(http.Response response) {
     // HTTP headers can have multiple Set-Cookie headers
     // The http package combines them into a single string separated by commas
-    final setCookieHeaders = response.headers['set-cookie'];
-    if (setCookieHeaders != null) {
-      setCookiesFromHeader(setCookieHeaders);
+    final setCookieHeaders = response.headersSplitValues['set-cookie'];
+    if (setCookieHeaders == null) return;
+    for (final setCookieHeader in setCookieHeaders) {
+      setCookiesFromHeader(setCookieHeader);
     }
-
-    // Also check for individual set-cookie headers in case they're separate
-    response.headers.forEach((key, value) {
-      if (key.toLowerCase() == 'set-cookie') {
-        setCookiesFromHeader(value);
-      }
-    });
   }
 
   void clear() => _cookies.clear();
@@ -116,7 +110,7 @@ class HttpSession extends SessionBase {
 
     // Use the send method to control redirect behavior
     final request = http.Request('GET', uri);
-    request.followRedirects = redirect;
+    request.followRedirects = false; // Always disable automatic redirects
 
     final Map<String, String> finalHeaders = {...?headers};
 
@@ -133,10 +127,15 @@ class HttpSession extends SessionBase {
     final streamedResponse = await _client.send(request);
     final response = await http.Response.fromStream(streamedResponse);
 
-    // Store cookies from response
-    _cookieJar.setCookiesFromResponse(response);
+    // Handle redirects manually if enabled
+    final finalResponse = redirect && _isRedirectResponse(response)
+        ? await _followRedirects(response)
+        : response;
 
-    return response;
+    // Store cookies from final response
+    _cookieJar.setCookiesFromResponse(finalResponse);
+
+    return finalResponse;
   }
 
   @override
@@ -151,7 +150,7 @@ class HttpSession extends SessionBase {
 
     // Use the send method to control redirect behavior
     final request = http.Request('POST', uri);
-    request.followRedirects = redirect;
+    request.followRedirects = false; // Always disable automatic redirects
 
     final Map<String, String> finalHeaders = {...?headers};
 
@@ -179,10 +178,15 @@ class HttpSession extends SessionBase {
     final streamedResponse = await _client.send(request);
     final response = await http.Response.fromStream(streamedResponse);
 
-    // Store cookies from response
-    _cookieJar.setCookiesFromResponse(response);
+    // Handle redirects manually if enabled
+    final finalResponse = redirect && _isRedirectResponse(response)
+        ? await _followRedirects(response)
+        : response;
 
-    return response;
+    // Store cookies from final response
+    _cookieJar.setCookiesFromResponse(finalResponse);
+
+    return finalResponse;
   }
 
   @override
@@ -199,6 +203,117 @@ class HttpSession extends SessionBase {
       return data;
     } catch (e) {
       throw BadResponseError('Invalid JSON response', cause: e);
+    }
+  }
+
+  /// Manually handles HTTP redirects to capture cookies from intermediate responses.
+  /// Returns the final response after following all redirects.
+  Future<http.Response> _followRedirects(
+    http.Response initialResponse, {
+    int maxRedirects = 5,
+  }) async {
+    http.Response currentResponse = initialResponse;
+    int redirectCount = 0;
+
+    while (_isRedirectResponse(currentResponse) &&
+        redirectCount < maxRedirects) {
+      // Capture cookies from the redirect response
+      _cookieJar.setCookiesFromResponse(currentResponse);
+
+      final location = currentResponse.headers['location'];
+      if (location == null || location.isEmpty) {
+        throw const BadResponseError(
+          'Redirect response missing Location header',
+        );
+      }
+
+      // Handle relative URLs
+      final Uri redirectUri;
+      if (location.startsWith('http://') || location.startsWith('https://')) {
+        redirectUri = Uri.parse(location);
+      } else {
+        final originalRequest = currentResponse.request;
+        final originalUri = originalRequest?.url ?? Uri.parse('');
+        if (location.startsWith('/')) {
+          // Absolute path
+          redirectUri = originalUri.replace(path: location, query: null);
+        } else {
+          // Relative path
+          final basePath = originalUri.path.endsWith('/')
+              ? originalUri.path
+              : '${originalUri.path.substring(0, originalUri.path.lastIndexOf('/') + 1)}';
+          redirectUri = originalUri.replace(
+            path: basePath + location,
+            query: null,
+          );
+        }
+      }
+
+      // Create new request for redirect
+      final method = _getRedirectMethod(
+        currentResponse.statusCode,
+        currentResponse.request?.method ?? 'GET',
+      );
+      final request = http.Request(method, redirectUri);
+      request.followRedirects = false; // Always disable automatic redirects
+
+      // Add cookies to redirect request
+      final cookieHeader = _cookieJar.getCookieHeader();
+      if (cookieHeader.isNotEmpty) {
+        request.headers['Cookie'] = cookieHeader;
+      }
+
+      // Copy some headers for GET redirects, but not for POST->GET redirects
+      if (method == 'GET' && currentResponse.request?.method == 'GET') {
+        final originalHeaders = currentResponse.request?.headers;
+        if (originalHeaders != null) {
+          // Copy safe headers
+          for (final header in [
+            'User-Agent',
+            'Accept',
+            'Accept-Language',
+            'Accept-Encoding',
+          ]) {
+            if (originalHeaders.containsKey(header)) {
+              request.headers[header] = originalHeaders[header]!;
+            }
+          }
+        }
+      }
+
+      final streamedResponse = await _client.send(request);
+      currentResponse = await http.Response.fromStream(streamedResponse);
+      redirectCount++;
+    }
+
+    if (redirectCount >= maxRedirects && _isRedirectResponse(currentResponse)) {
+      throw const BadResponseError('Too many redirects');
+    }
+
+    return currentResponse;
+  }
+
+  /// Checks if the response is a redirect response.
+  bool _isRedirectResponse(http.Response response) {
+    return response.statusCode >= 300 &&
+        response.statusCode < 400 &&
+        response.statusCode != 304; // Not Modified is not a redirect
+  }
+
+  /// Determines the HTTP method to use for a redirect based on the status code.
+  String _getRedirectMethod(int statusCode, String originalMethod) {
+    switch (statusCode) {
+      case 301: // Moved Permanently
+      case 302: // Found
+      case 303: // See Other
+        // For POST requests, redirect as GET
+        return originalMethod == 'POST' ? 'GET' : originalMethod;
+      case 307: // Temporary Redirect
+      case 308: // Permanent Redirect
+        // Preserve original method
+        return originalMethod;
+      default:
+        return originalMethod;
     }
   }
 
