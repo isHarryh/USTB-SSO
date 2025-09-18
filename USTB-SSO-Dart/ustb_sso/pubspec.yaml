@@ -1,0 +1,19 @@
+name: ustb_sso
+description: USTB Single Sign-On Authentication Library (Dart)
+version: 1.0.0
+repository: https://github.com/isHarryh/USTB-SSO
+homepage: https://github.com/isHarryh/USTB-SSO
+
+environment:
+  sdk: ^3.9.0
+
+dependencies:
+  http: ^1.2.2
+  html: ^0.15.4
+  crypto: ^3.0.5
+  image: ^4.2.0
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.25.6
+  build_runner: ^2.4.12
