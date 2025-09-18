@@ -27,6 +27,16 @@ def validate_chat_response(**kwargs: Any) -> bool:
     return "cookie_vjuid_login" in kwargs["session"].client.cookies
 
 
+def validate_byyt_response(**kwargs: Any) -> bool:
+    print()
+    print(kwargs["session"].client.cookies)
+    return (
+        "//byyt.ustb.edu.cn/" in str(getattr(kwargs["response"], "url", ""))
+        and "INCO" in kwargs["session"].client.cookies
+        and "SESSION" in kwargs["session"].client.cookies
+    )
+
+
 def test_qr_auth(auth_procedure: QrAuthProcedure, platform: TestPlatform) -> Any:
     print(f"{platform.name}: Setting up QR authentication")
 
@@ -72,6 +82,7 @@ def test_sms_auth(auth_procedure: SmsAuthProcedure, platform: TestPlatform) -> A
 PLATFORMS = {
     "JWGL": TestPlatform(name="JWGL", config=prefabs.JWGL_USTB_EDU_CN, validation_func=validate_jwgl_response),
     "CHAT": TestPlatform(name="CHAT", config=prefabs.CHAT_USTB_EDU_CN, validation_func=validate_chat_response),
+    "BYYT": TestPlatform(name="BYYT", config=prefabs.BYYT_USTB_EDU_CN, validation_func=validate_byyt_response),
 }
 
 METHODS = {
