@@ -45,6 +45,11 @@ void main() async {
       config: Prefabs.chatUstbEduCn,
       validationFunc: validateChatResponse,
     ),
+    'BYYT': TestPlatform(
+      name: 'BYYT',
+      config: Prefabs.byytUstbEduCn,
+      validationFunc: validateByytResponse,
+    ),
   };
 
   // Define available methods
@@ -135,7 +140,7 @@ bool validateJwglResponse(HttpSession session, http.Response response) {
     print('JWGL: Authentication cookie found - JSESSIONID = $jsessionId');
   }
 
-  return hasFrameworkUrl || hasJSessionId;
+  return hasFrameworkUrl && hasJSessionId;
 }
 
 /// Validation function for CHAT response.
@@ -155,7 +160,27 @@ bool validateChatResponse(HttpSession session, http.Response response) {
       response.statusCode == 200 ||
       response.request?.url.toString().contains('chat.ustb.edu.cn') == true;
 
-  return hasValidResponse || hasChatCookie;
+  return hasValidResponse && hasChatCookie;
+}
+
+bool validateByytResponse(HttpSession session, http.Response response) {
+  // Check if we have the expected cookie (e.g., auth_token or similar)
+  final hasByytCookie =
+      session.cookies.has('INCO') && session.cookies.has('SESSION');
+
+  if (hasByytCookie) {
+    final byytIncoCookie = session.cookies.get('INCO');
+    print('BYYT: Authentication cookie found - INCO = $byytIncoCookie');
+    final byytSessionCookie = session.cookies.get('SESSION');
+    print('BYYT: Authentication cookie found - SESSION = $byytSessionCookie');
+  }
+
+  // Check if we have the expected response or cookie
+  final hasValidResponse =
+      response.statusCode == 200 ||
+      response.request?.url.toString().contains('byyt.ustb.edu.cn') == true;
+
+  return hasValidResponse && hasByytCookie;
 }
 
 /// Tests authentication methods query.
@@ -246,21 +271,8 @@ Future<void> runTest(TestPlatform platform, TestMethod method) async {
     // Validate response
     if (platform.validationFunc(session, response)) {
       print('${platform.name}: ✅ Test PASSED - Authentication successful');
-
-      // Print final cookie summary like Python version
-      print('${platform.name}: Final authentication cookies:');
-      final allCookies = session.cookies.items;
-      if (allCookies.isNotEmpty) {
-        allCookies.forEach((name, value) {
-          print('${platform.name}: Cookie: $name = $value');
-        });
-      } else {
-        print('${platform.name}: No cookies found in session');
-      }
     } else {
-      print(
-        '${platform.name}: ❌ Test FAILED - Authentication validation failed',
-      );
+      print('${platform.name}: ❌ Test FAILED - Authentication failed');
     }
   } catch (e) {
     print('${platform.name}: ❌ Test FAILED - Exception: $e');
@@ -281,24 +293,13 @@ Future<http.Response> testQrAuth(
   await auth.useWechatAuth();
   await auth.useQrCode();
 
-  final qrPath = 'qr_${platform.name.toLowerCase()}.png';
+  final qrPath = 'qr.png';
   final qrImageBytes = await auth.getQrImage();
   final qrFile = File(qrPath);
   await qrFile.writeAsBytes(qrImageBytes);
 
   print('${platform.name}: QR code saved to $qrPath');
   print('${platform.name}: Please scan the QR code to continue');
-
-  stdout.write(
-    'Press Enter after scanning the QR code, or type "skip" to skip: ',
-  );
-  final input = stdin.readLineSync();
-
-  if (input?.toLowerCase() == 'skip') {
-    print('${platform.name}: QR test skipped by user');
-    // Return a mock successful response for testing
-    return http.Response('{"status": "skipped"}', 200);
-  }
 
   try {
     final passCode = await auth.waitForPassCode();
