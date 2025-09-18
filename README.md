@@ -9,9 +9,13 @@ USTB Single Sign-On Authentication Library
 
 本项目旨在实现与北京科技大学 SSO 身份认证系统进行交互的 API 库。
 
-| 子目录 | 实现语言 |
-|:---:|:---:|
-| `USTB-SSO-Py` | Python |
+| 子目录          | 语言   | 初次发布日期 | 发布平台  |
+| :-------------- | :----- | :----------- | :-------- |
+| `USTB-SSO-Py`   | Python | 2025-05-01   | [PyPI]    |
+| `USTB-SSO-Dart` | Dart   | 2025-09-18   | [pub.dev] |
+
+[PyPI]: https://pypi.org/project/USTB-SSO
+[pub.dev]: https://pub.dev/packages/ustb_sso
 
 ### 使用方法
 
